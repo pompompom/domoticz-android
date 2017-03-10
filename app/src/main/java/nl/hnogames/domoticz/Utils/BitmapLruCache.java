@@ -53,7 +53,7 @@ public class BitmapLruCache
 
     @Override
     public Bitmap getBitmap(String url) {
-        return get(url);
+        return null;//get(url);
     }
 
     @Override
