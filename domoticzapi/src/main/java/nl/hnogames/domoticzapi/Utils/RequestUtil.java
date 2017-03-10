@@ -23,6 +23,7 @@ package nl.hnogames.domoticzapi.Utils;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.support.annotation.Nullable;
 import android.util.Base64;
 import android.util.Log;
@@ -30,15 +31,22 @@ import android.widget.ImageView;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Network;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.BasicNetwork;
+import com.android.volley.toolbox.DiskBasedCache;
+import com.android.volley.toolbox.HttpClientStack;
+import com.android.volley.toolbox.HttpStack;
+import com.android.volley.toolbox.HurlStack;
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.ImageRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.NoCache;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONException;
@@ -374,9 +382,21 @@ public class RequestUtil {
     public static ImageLoader getImageLoader(final Domoticz domoticz, final SessionUtil sessionUtil, Context context) {
         if (domoticz == null)
             return null;
-
+        HttpStack stack=null;
         ImageLoader.ImageCache imageCache = new BitmapLruCache();
-        return new ImageLoader(Volley.newRequestQueue(context), imageCache) {
+        stack = new HurlStack();
+        Network network = new BasicNetwork(stack);
+        //if (Build.VERSION.SDK_INT >= 9) {
+
+        //} else {
+            // Prior to Gingerbread, HttpUrlConnection was unreliable.
+            // See: http://android-developers.blogspot.com/2011/09/androids-http-clients.html
+          //  stack = new HttpClientStack(AndroidHttpClient.newInstance(userAgent));
+        //}
+        RequestQueue queue = new RequestQueue(new NoCache(), network);
+        queue.start();
+
+        return new ImageLoader(queue, imageCache) {
             @SuppressWarnings("deprecation")
             @Override
             protected com.android.volley.Request<Bitmap> makeImageRequest(String requestUrl, int maxWidth, int maxHeight,
@@ -384,6 +404,7 @@ public class RequestUtil {
                 return new ImageRequest(requestUrl, new Response.Listener<Bitmap>() {
                     @Override
                     public void onResponse(Bitmap response) {
+
                         onGetImageSuccess(cacheKey, response);
                     }
                 }, maxWidth, maxHeight,
